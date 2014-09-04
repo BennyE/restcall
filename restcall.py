@@ -24,7 +24,6 @@ except ImportError:
 # - Mehr Try & Except zur Fehlerbehandlung
 # - Auslesen welche Faehigkeiten ein User hat (BASIC, ADVANCED)
 #   - Anzeige in GUI o.ae. nach Faehigkeiten
-# - Parameter an makecall() uebergeben um Geraet eines Nutzers zu waehlen usw.
 
 
 class Client(object):
@@ -60,8 +59,7 @@ class Client(object):
         # Set our username/password for authentication
         self.rest.auth = (self.username, self.password)
         self.dbg = dbg
-        self.debugprint("""
-Debug:
+        self.debugprint("""Debug:
     Server:\t%s
     Username:\t%s
     Password:\t%s
@@ -75,6 +73,14 @@ Debug:
         This function performs a login to the OpenTouch
         RESTful service.
         """
+        
+        # TODO
+        # We should probably split this in
+        #   - authenticate()
+        #   - Session()
+        # This is the way RESTful API is doing it.
+        # Or login() becomes a helper function to do both in order
+
         print("Attempting to login ...")
 
         authurl = "/api/rest/authenticate?version=1.0"
@@ -92,32 +98,39 @@ Debug:
             print("Attempting to register session!")
             authpostresponse = self.rest.post(
                                 authresponse.json()["publicUrl"],
-                                headers = rqheader,
-                                data = json.dumps(payload)
+                                headers=rqheader,
+                                data=json.dumps(payload)
                                 )
             self.debugprint("Request POST Headers:\n%s" % authpostresponse.request.headers)
             self.debugprint("Response POST Headers:\n%s" % authpostresponse.headers)
             self.debugprint(authpostresponse)
             self.debugprint("Response POST Content:\n%s" % authpostresponse.content)
             if authpostresponse.status_code == 200:
-                print("Session successfully registered!")
-                print(authpostresponse.json())
+                print("Session successfully registered: OK - %s" % \
+                      authpostresponse)
                 self.login_successfull = True
-            else:
-                print("Something went wrong ...")
+                self.session = authpostresponse.json()
+                print("Session information:\n%s" % 
+                      json.dumps(self.session, indent=4))
+            elif authpostresponse.status_code == 400:
+                print("Bad Request - %s" % authpostresponse)
                 self.login_successfull = False
+            elif authpostresponse.status_code == 403:
+                print("Forbidden - %s" % authpostresponse)
+                self.login_successfull = False
+            elif authpostresponse.status_code == 500:
+                print("Internal Server Error - %s" % authpostresponse)
+                self.login_successfull = False
+            elif authpostresponse.status_code == 503:
+                print("Service Unavailable - %s" % authpostresponse)
+                self.login_successfull = False
+            return authpostresponse
 
         elif authresponse.status_code == 401:
-            print("Username or password wrong/missing!")
+            print("ERROR: Username or password incorrect/missing!")
             self.login_successfull = False 
-        else:
-            # Some more error handling here
-            pass 
-        #print(authresponse)
-        #self.debugprint(authresponse.json())
-        #if self.dbg:
-        #    print(authresponse.json())
-        #print(response.content)
+        return authresponse        
+
 
     def debugprint(self, content):
         """
@@ -135,7 +148,8 @@ Debug:
         """
         rqheader = {"Content-Type" : "application/json"}
         userurl = "/api/rest/1.0/users/" + self.username
-        userresponse = self.rest.get(self.ot_url + userurl, headers = rqheader)
+        userresponse = self.rest.get(self.ot_url + userurl,
+                                     headers=rqheader)
                 
         self.debugprint("Request Headers:\n%s" % userresponse.request.headers)
         self.debugprint("Response Headers:\n%s" % userresponse.headers)
@@ -143,24 +157,38 @@ Debug:
         self.debugprint("Response Content:\n%s" % userresponse.content)
 
         if userresponse.status_code == 200:
-            print(userresponse.json())
-            userdict = userresponse.json()   
-            return userdict
-        else:
-            return "Error"
+            print("Get user details - %s" % userresponse)
+            self.devices = userresponse.json()
+            print("User information:\n%s" % 
+                  json.dumps(self.devices, indent=4))
+        elif userresponse.status_code == 400:
+            print("Bad Request - %s" % userreponse)
+        elif userresponse.status_code == 403:
+            print("Forbidden - %s" % userresponse)
+        elif userresponse.status_code == 500:
+            print("Internal Server Error - %s" % userresponse)
+        elif userresponse.status_code == 503:
+            print("Service Unavailable - %s" % userresponse)
+        return userresponse
+        
 
-
-    def makebasiccall(self, device, callee, anonymous=False, autoanswer=False):
+    def makebasiccall(self, device, callee, anonymous=False,
+                      autoanswer=False):
         """
         This function places a basic call.
         
+        Requires:
+            - deviceId (the device of the caller)
+            - callee (the number to be called)
+            - anonymous (if the number should be suppressed)
+            - autoAnswer (if the callback is automatically accepted) 
         """
 
         # TODO
         # - Device Id, welche nehmen wir da per default?
         # - Ich wuerd vorschlagen wir laden die Faehigkeiten des Teilnehmers und dann das DeskPhone per default
 
-        rqheader = {"Content-Type" : "application/json"}
+        rqheader = {"Content-Type": "application/json"}
         call = {
             "deviceId" : device,
             "callee" : callee,
@@ -168,51 +196,117 @@ Debug:
             "autoAnswer" : autoanswer
         }
         bcurl = "/api/rest/1.0/telephony/basicCall"
-        bcresponse = self.rest.post(self.ot_url + bcurl, headers = rqheader, data=json.dumps(call))
+        bcresponse = self.rest.post(self.ot_url + bcurl,
+                                    headers=rqheader,
+                                    data=json.dumps(call))
                 
         self.debugprint("Request Headers:\n%s" % bcresponse.request.headers)
         self.debugprint("Response Headers:\n%s" % bcresponse.headers)
         self.debugprint(bcresponse)
         self.debugprint("Response Content:\n%s" % bcresponse.content)
 
-        # TODO: Pruefen was hier zurueckkommt!
-        # Welche Notifications gibt es (besetzt?)?
-
         if bcresponse.status_code == 201:
-            print(bcresponse.json())
-            bcdict = userresponse.json()   
-            return bcdict
-        else:
-            return "Error"
+            print("Call successfully made - %s" % bcresponse)
+        elif bcresponse.status_code == 400:
+            print("Bad Request - %s" % bcresponse)
+        elif bcresponse.status_code == 401:
+            print("Unauthorized - %s" % bcresponse)
+        elif bcresponse.status_code == 403:
+            print("Forbidden - %s" % bcresponse)
+        elif bcresponse.status_code == 500:
+            print("Internal Server Error - %s" % bcresponse)
+        elif bcresponse.status_code == 503:
+            print("Service Unavailable - %s" % bcresponse)
+        return bcresponse
 
     
-
-    def endbasiccall(self, device):
+    def answerbasiccall(self, device):
         """
-        This function ends a basic call.
-        
+        This function answers a basic call.
+        Takes deviceId as an argument.
+        """
+
+        # NOTES
+        # You can accept an incoming call, but not the callback coming
+        # from the OT if you set autoAnswer to False
+
+        rqheader = {"Content-Type": "application/json"}
+        bcurl = "/api/rest/1.0/telephony/basicCall/answer"
+        bcresponse = self.rest.post(self.ot_url + bcurl,
+                                    headers=rqheader,
+                                    data=json.dumps({"deviceId": device}))
+                
+        self.debugprint("Request Headers:\n%s" % bcresponse.request.headers)
+        self.debugprint("Response Headers:\n%s" % bcresponse.headers)
+        self.debugprint(bcresponse)
+        self.debugprint("Response Content:\n%s" % bcresponse.content)
+
+        if bcresponse.status_code == 204:
+            print("Call successfully answered - %s" % bcresponse)
+        elif bcresponse.status_code == 400:
+            print("Bad Request - %s" % bcresponse)
+        elif bcresponse.status_code == 401:
+            print("Unauthorized - %s" % bcresponse)
+        elif bcresponse.status_code == 403:
+            print("Forbidden - %s" % bcresponse)
+        elif bcresponse.status_code == 500:
+            print("Internal Server Error - %s" % bcresponse)
+        elif bcresponse.status_code == 503:
+            print("Service Unavailable - %s" % bcresponse)
+        return bcresponse
+
+
+    def dropbasiccall(self):
+        """
+        This function drops a basic call.
         """
 
         # TODO
+        # I wonder how we select "which call" should be ended
+        #   - We can't read the larger tables due to licenses missing
+        #   - This appears to be "callRef", but that is set to "null"
 
-        rqheader = {"Content-Type" : "application/json"}
+        rqheader = {"Content-Type": "application/json"}
         bcurl = "/api/rest/1.0/telephony/basicCall/dropme"
-        bcresponse = self.rest.post(self.ot_url + bcurl, headers = rqheader)
+        bcresponse = self.rest.post(self.ot_url + bcurl, headers=rqheader)
                 
         self.debugprint("Request Headers:\n%s" % bcresponse.request.headers)
         self.debugprint("Response Headers:\n%s" % bcresponse.headers)
         self.debugprint(bcresponse)
         self.debugprint("Response Content:\n%s" % bcresponse.content)
 
-        # TODO: Pruefen was hier zurueckkommt!
-        # Welche Notifications gibt es (besetzt?)?
+        if bcresponse.status_code == 204:
+            print("Call ended - %s" % bcresponse)
+        elif bcresponse.status_code == 400:
+            print("Bad Request - %s" % bcresponse)
+        elif bcresponse.status_code == 403:
+            print("Forbidden - %s" % bcresponse)
+        elif bcresponse.status_code == 500:
+            print("Internal Server Error - %s" % bcresponse)
+        elif bcresponse.status_code == 503:
+            print("Service Unavailable - %s" % bcresponse)
+        return bcresponse
 
-        if bcresponse.status_code == 201:
-            print(bcresponse.json())
-            bcdict = userresponse.json()   
-            return bcdict
-        else:
-            return "Error"
+
+    def devpost(self, devurl, payload):
+        """
+        This function sends a POST request with payload.
+            - Requires request URL (server/host is set)
+            - Requires payload as dict
+        Meant for development.
+        """
+
+        rqheader = {"Content-Type": "application/json"}
+        #bcurl = "/api/rest/1.0/telephony/basicCall/answer"
+        devresponse = self.rest.post(self.ot_url + devurl,
+                                     headers=rqheader,
+                                     data=json.dumps(payload))
+                
+        self.debugprint("Request Headers:\n%s" % devresponse.request.headers)
+        self.debugprint("Response Headers:\n%s" % devresponse.headers)
+        self.debugprint(devresponse)
+        self.debugprint("Response Content:\n%s" % devresponse.content)
+        return devresponse
 
 
 if __name__ == "__main__":
@@ -220,37 +314,43 @@ if __name__ == "__main__":
     This is called if running as a script and not being imported by
     another script!
     """
-    ot_url = "https://remote.alu4u.com"
     sn = "RESTcall v0.2"
     
     print("""
-%s - RESTful client backend/library for Alcatel-Lucent Enterprise OpenTouch
+%s
+A RESTful client backend/library for Alcatel-Lucent Enterprise OpenTouch
 
 Developed in 2014 by:
 Benjamin Eggerstedt
-Christian Sailer""" % sn)
+Christian Sailer\n""" % sn)
 
     # Load the login credentials from external file that is in .gitignore
     # Never commit your login credentials to a public respository
     try:
         with open("login.json", "r") as json_data:
             login = json.load(json_data)
+            ot_url = login["server"]
             username = login["username"]
             password = login["password"]
     except IOError:
-        sys.exit("Couldn't find \'login.json\' file!") 
+        print("ERROR: Couldn't find \'login.json\' file!") 
+        sys.exit("You may want to rename / edit the template!") 
     except TypeError:
-        sys.exit("Couldn't read json format!")
+        sys.exit("ERROR: Couldn't read json format!")
 
+    if ot_url == "https://yourserver":
+        sys.exit("This won't work with default template values!")    
+
+    # Use the class, set variables
     #                                               vSSL, Debug
-    client = Client(ot_url, username, password, sn, False, True)   
+    client = Client(ot_url, username, password, sn, False, False)   
     client.login()
-    #if client.login_successfull is True:
-    #    userdict = client.userdetails()
-        # Damit kann man halt nett im Programm sehen ob gewisse Dinge
-        # gesetzt wurden bzw. verfuegbar sind.
-    #    if userdict != "Error":
-    #        print("Mail: %s" % userdict["companyEmail"])
-       # caller = client.makecall()
-    # Mueeedeeee ;)
+    
+    if client.login_successfull is True:
+        devices = client.userdetails()
+    
+    #TODO:
+    #   - Need to write logout() function
+    #   - Need a way to keep our session active
+    #       - POST api/session/keepalive (TBD)
     #client.logout()
