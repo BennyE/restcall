@@ -73,7 +73,6 @@ class Client(object):
         This function performs a login to the OpenTouch
         RESTful service.
         """
-        
         # TODO
         # We should probably split this in
         #   - authenticate()
@@ -85,7 +84,8 @@ class Client(object):
 
         authurl = "/api/rest/authenticate?version=1.0"
         authresponse = self.rest.get(self.ot_url + authurl)
-        self.debugprint("Request Headers:\n%s" % authresponse.request.headers)
+        self.debugprint("Request Headers:\n%s" %
+                        authresponse.request.headers)
         self.debugprint("Response Headers:\n%s" % authresponse.headers)
         self.debugprint(authresponse)
         self.debugprint("Response Content:\n%s" % authresponse.content)
@@ -97,20 +97,23 @@ class Client(object):
             print("Authentication successfull!")
             print("Attempting to register session!")
             authpostresponse = self.rest.post(
-                                authresponse.json()["publicUrl"],
-                                headers=rqheader,
-                                data=json.dumps(payload)
-                                )
-            self.debugprint("Request POST Headers:\n%s" % authpostresponse.request.headers)
-            self.debugprint("Response POST Headers:\n%s" % authpostresponse.headers)
+                authresponse.json()["publicUrl"],
+                headers=rqheader,
+                data=json.dumps(payload)
+                )
+            self.debugprint("Request POST Headers:\n%s" %
+                            authpostresponse.request.headers)
+            self.debugprint("Response POST Headers:\n%s" %
+                            authpostresponse.headers)
             self.debugprint(authpostresponse)
-            self.debugprint("Response POST Content:\n%s" % authpostresponse.content)
+            self.debugprint("Response POST Content:\n%s" %
+                            authpostresponse.content)
             if authpostresponse.status_code == 200:
-                print("Session successfully registered: OK - %s" % \
+                print("Session successfully registered: OK - %s" %
                       authpostresponse)
                 self.login_successfull = True
                 self.session = authpostresponse.json()
-                print("Session information:\n%s" % 
+                print("Session information:\n%s" %
                       json.dumps(self.session, indent=4))
             elif authpostresponse.status_code == 400:
                 print("Bad Request - %s" % authpostresponse)
@@ -128,9 +131,8 @@ class Client(object):
 
         elif authresponse.status_code == 401:
             print("ERROR: Username or password incorrect/missing!")
-            self.login_successfull = False 
-        return authresponse        
-
+            self.login_successfull = False
+        return authresponse
 
     def debugprint(self, content):
         """
@@ -140,18 +142,18 @@ class Client(object):
         if self.dbg:
             print(content)
 
-    
     def userdetails(self):
         """
         This function returns the details of the currently
         logged in user.
         """
-        rqheader = {"Content-Type" : "application/json"}
+        rqheader = {"Content-Type": "application/json"}
         userurl = "/api/rest/1.0/users/" + self.username
         userresponse = self.rest.get(self.ot_url + userurl,
                                      headers=rqheader)
-                
-        self.debugprint("Request Headers:\n%s" % userresponse.request.headers)
+
+        self.debugprint("Request Headers:\n%s" %
+                        userresponse.request.headers)
         self.debugprint("Response Headers:\n%s" % userresponse.headers)
         self.debugprint(userresponse)
         self.debugprint("Response Content:\n%s" % userresponse.content)
@@ -159,7 +161,7 @@ class Client(object):
         if userresponse.status_code == 200:
             print("Get user details - %s" % userresponse)
             self.devices = userresponse.json()
-            print("User information:\n%s" % 
+            print("User information:\n%s" %
                   json.dumps(self.devices, indent=4))
         elif userresponse.status_code == 400:
             print("Bad Request - %s" % userreponse)
@@ -170,37 +172,38 @@ class Client(object):
         elif userresponse.status_code == 503:
             print("Service Unavailable - %s" % userresponse)
         return userresponse
-        
 
     def makebasiccall(self, device, callee, anonymous=False,
                       autoanswer=False):
         """
         This function places a basic call.
-        
+
         Requires:
             - deviceId (the device of the caller)
             - callee (the number to be called)
             - anonymous (if the number should be suppressed)
-            - autoAnswer (if the callback is automatically accepted) 
+            - autoAnswer (if the callback is automatically accepted)
         """
 
         # TODO
         # - Device Id, welche nehmen wir da per default?
-        # - Ich wuerd vorschlagen wir laden die Faehigkeiten des Teilnehmers und dann das DeskPhone per default
+        # - Ich wuerd vorschlagen wir laden die Faehigkeiten des
+        #   Teilnehmers und dann das DeskPhone per default
 
         rqheader = {"Content-Type": "application/json"}
         call = {
-            "deviceId" : device,
-            "callee" : callee,
-            "anonymous" : anonymous,
-            "autoAnswer" : autoanswer
+            "deviceId": device,
+            "callee": callee,
+            "anonymous": anonymous,
+            "autoAnswer": autoanswer
         }
         bcurl = "/api/rest/1.0/telephony/basicCall"
         bcresponse = self.rest.post(self.ot_url + bcurl,
                                     headers=rqheader,
                                     data=json.dumps(call))
-                
-        self.debugprint("Request Headers:\n%s" % bcresponse.request.headers)
+
+        self.debugprint("Request Headers:\n%s" %
+                        bcresponse.request.headers)
         self.debugprint("Response Headers:\n%s" % bcresponse.headers)
         self.debugprint(bcresponse)
         self.debugprint("Response Content:\n%s" % bcresponse.content)
@@ -219,7 +222,6 @@ class Client(object):
             print("Service Unavailable - %s" % bcresponse)
         return bcresponse
 
-    
     def answerbasiccall(self, device):
         """
         This function answers a basic call.
@@ -235,8 +237,9 @@ class Client(object):
         bcresponse = self.rest.post(self.ot_url + bcurl,
                                     headers=rqheader,
                                     data=json.dumps({"deviceId": device}))
-                
-        self.debugprint("Request Headers:\n%s" % bcresponse.request.headers)
+
+        self.debugprint("Request Headers:\n%s" %
+                        bcresponse.request.headers)
         self.debugprint("Response Headers:\n%s" % bcresponse.headers)
         self.debugprint(bcresponse)
         self.debugprint("Response Content:\n%s" % bcresponse.content)
@@ -255,7 +258,6 @@ class Client(object):
             print("Service Unavailable - %s" % bcresponse)
         return bcresponse
 
-
     def dropbasiccall(self):
         """
         This function drops a basic call.
@@ -269,7 +271,7 @@ class Client(object):
         rqheader = {"Content-Type": "application/json"}
         bcurl = "/api/rest/1.0/telephony/basicCall/dropme"
         bcresponse = self.rest.post(self.ot_url + bcurl, headers=rqheader)
-                
+
         self.debugprint("Request Headers:\n%s" % bcresponse.request.headers)
         self.debugprint("Response Headers:\n%s" % bcresponse.headers)
         self.debugprint(bcresponse)
@@ -287,6 +289,23 @@ class Client(object):
             print("Service Unavailable - %s" % bcresponse)
         return bcresponse
 
+    def devget(self, devurl):
+        """
+        This function sends a GET request.
+            - Requires request URL (server/host is set)
+        Meant for development.
+        """
+
+        rqheader = {"Content-Type": "application/json"}
+        devresponse = self.rest.post(self.ot_url + devurl,
+                                     headers=rqheader)
+
+        self.debugprint("Request Headers:\n%s" %
+                        devresponse.request.headers)
+        self.debugprint("Response Headers:\n%s" % devresponse.headers)
+        self.debugprint(devresponse)
+        self.debugprint("Response Content:\n%s" % devresponse.content)
+        return devresponse
 
     def devpost(self, devurl, payload):
         """
@@ -297,12 +316,13 @@ class Client(object):
         """
 
         rqheader = {"Content-Type": "application/json"}
-        #bcurl = "/api/rest/1.0/telephony/basicCall/answer"
+        # bcurl = "/api/rest/1.0/telephony/basicCall/answer"
         devresponse = self.rest.post(self.ot_url + devurl,
                                      headers=rqheader,
                                      data=json.dumps(payload))
-                
-        self.debugprint("Request Headers:\n%s" % devresponse.request.headers)
+
+        self.debugprint("Request Headers:\n%s" %
+                        devresponse.request.headers)
         self.debugprint("Response Headers:\n%s" % devresponse.headers)
         self.debugprint(devresponse)
         self.debugprint("Response Content:\n%s" % devresponse.content)
@@ -314,8 +334,8 @@ if __name__ == "__main__":
     This is called if running as a script and not being imported by
     another script!
     """
-    sn = "RESTcall v0.2"
-    
+    sn = "RESTcall v0.3"
+
     print("""
 %s
 A RESTful client backend/library for Alcatel-Lucent Enterprise OpenTouch
@@ -333,24 +353,24 @@ Christian Sailer\n""" % sn)
             username = login["username"]
             password = login["password"]
     except IOError:
-        print("ERROR: Couldn't find \'login.json\' file!") 
-        sys.exit("You may want to rename / edit the template!") 
+        print("ERROR: Couldn't find \'login.json\' file!")
+        sys.exit("You may want to rename / edit the template!")
     except TypeError:
         sys.exit("ERROR: Couldn't read json format!")
 
     if ot_url == "https://yourserver":
-        sys.exit("This won't work with default template values!")    
+        sys.exit("This won't work with default template values!")
 
     # Use the class, set variables
     #                                               vSSL, Debug
-    client = Client(ot_url, username, password, sn, False, False)   
+    client = Client(ot_url, username, password, sn, False, False)
     client.login()
-    
+
     if client.login_successfull is True:
         devices = client.userdetails()
-    
-    #TODO:
+
+    # TODO:
     #   - Need to write logout() function
     #   - Need a way to keep our session active
     #       - POST api/session/keepalive (TBD)
-    #client.logout()
+    # client.logout()
