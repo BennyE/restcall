@@ -173,6 +173,44 @@ class Client(object):
             print("Service Unavailable - %s" % userresponse)
         return userresponse
 
+    def userpreferences(self):
+        """
+        This function returns the preferences of the currently
+        logged in user.
+        """
+
+        # NOTES
+        # - This is currently undocumented in API guide
+        # - I assume the same response codes as for "user details" apply
+        # - We can read the language preference from here (guiLanguage)
+        # - guiLanguage will hold: de, en, fr (and so on)
+
+        rqheader = {"Content-Type": "application/json"}
+        userurl = "/api/rest/1.0/users/" + self.username + "/preferences"
+        userresponse = self.rest.get(self.ot_url + userurl,
+                                     headers=rqheader)
+
+        self.debugprint("Request Headers:\n%s" %
+                        userresponse.request.headers)
+        self.debugprint("Response Headers:\n%s" % userresponse.headers)
+        self.debugprint(userresponse)
+        self.debugprint("Response Content:\n%s" % userresponse.content)
+
+        if userresponse.status_code == 200:
+            print("Get user preferences - %s" % userresponse)
+            self.preferences = userresponse.json()
+            print("User preferences:\n%s" %
+                  json.dumps(self.preferences, indent=4))
+        elif userresponse.status_code == 400:
+            print("Bad Request - %s" % userreponse)
+        elif userresponse.status_code == 403:
+            print("Forbidden - %s" % userresponse)
+        elif userresponse.status_code == 500:
+            print("Internal Server Error - %s" % userresponse)
+        elif userresponse.status_code == 503:
+            print("Service Unavailable - %s" % userresponse)
+        return userresponse
+
     def makebasiccall(self, device, callee, anonymous=False,
                       autoanswer=False):
         """
@@ -184,11 +222,6 @@ class Client(object):
             - anonymous (if the number should be suppressed)
             - autoAnswer (if the callback is automatically accepted)
         """
-
-        # TODO
-        # - Device Id, welche nehmen wir da per default?
-        # - Ich wuerd vorschlagen wir laden die Faehigkeiten des
-        #   Teilnehmers und dann das DeskPhone per default
 
         rqheader = {"Content-Type": "application/json"}
         call = {
@@ -231,6 +264,10 @@ class Client(object):
         # NOTES
         # You can accept an incoming call, but not the callback coming
         # from the OT if you set autoAnswer to False
+        #
+        # TELEPHONY_BASIC doesn't allow a RESTful notification towards
+        # the user. We can simply only accept the call if you see it
+        # on your handset.
 
         rqheader = {"Content-Type": "application/json"}
         bcurl = "/api/rest/1.0/telephony/basicCall/answer"
@@ -263,10 +300,12 @@ class Client(object):
         This function drops a basic call.
         """
 
-        # TODO
-        # I wonder how we select "which call" should be ended
-        #   - We can't read the larger tables due to licenses missing
-        #   - This appears to be "callRef", but that is set to "null"
+        # NOTES
+        # Changes in OT2.0 Iteration 9 Hotfixes 2014.02.21
+        #   - Exit from the call:
+        #       - if the call is a single call, it is released
+        #       - if it is conference, the call carries on without
+        #         the user
 
         rqheader = {"Content-Type": "application/json"}
         bcurl = "/api/rest/1.0/telephony/basicCall/dropme"
@@ -293,12 +332,19 @@ class Client(object):
         """
         This function sends a GET request.
             - Requires request URL (server/host is set)
+
+        Example for devurl:
+        devurl = /api/rest/1.0/users/{login.name}/preferences
+
         Meant for development.
         """
 
+        # TODO
+        # Potentially remove function after development phase
+
         rqheader = {"Content-Type": "application/json"}
         devresponse = self.rest.get(self.ot_url + devurl,
-                                     headers=rqheader)
+                                    headers=rqheader)
 
         self.debugprint("Request Headers:\n%s" %
                         devresponse.request.headers)
@@ -312,11 +358,17 @@ class Client(object):
         This function sends a POST request with payload.
             - Requires request URL (server/host is set)
             - Requires payload as dict
+
+        Example for devurl:
+        devurl = "/api/rest/1.0/telephony/basicCall/answer"
+
         Meant for development.
         """
 
+        # TODO
+        # Potentially remove function after development phase
+
         rqheader = {"Content-Type": "application/json"}
-        # bcurl = "/api/rest/1.0/telephony/basicCall/answer"
         devresponse = self.rest.post(self.ot_url + devurl,
                                      headers=rqheader,
                                      data=json.dumps(payload))
@@ -368,6 +420,7 @@ Christian Sailer\n""" % sn)
 
     if client.login_successfull is True:
         devices = client.userdetails()
+        preferences = client.userpreferences()
 
     # TODO:
     #   - Need to write logout() function
