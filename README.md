@@ -7,7 +7,7 @@ RESTcall is a lightweight client backend/library to interact with the Alcatel-Lu
 
 __Example:__
 
-The user has the ability for "TELEPHONY_BASIC".
+The user has the ability for "BASIC_TELEPHONY".
 
 ```
 
