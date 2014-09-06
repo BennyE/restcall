@@ -24,7 +24,9 @@ except ImportError:
 # - Mehr Try & Except zur Fehlerbehandlung
 # - Auslesen welche Faehigkeiten ein User hat (BASIC, ADVANCED)
 #   - Anzeige in GUI o.ae. nach Faehigkeiten
-
+# - Pruefen inwieweit ein Administrator eine CTI-Applikation nutzt
+#   - Einige Funktionen benoetigen "loginName", im Fall eines Administrator
+#     Accounts muss dieser zwingend gesetzt werden!
 
 class Client(object):
     """
@@ -219,6 +221,34 @@ class Client(object):
         """
         if self.dbg:
             print(content)
+
+    def getlogins(self):
+        """
+        This function returns the currently logged in user.
+        For an administrator all logged in users will be returned.
+        """
+        rqheader = {"Content-Type": "application/json"}
+        userurl = "/api/rest/1.0/logins"
+        userresponse = self.rest.get(self.ot_url + userurl,
+                                     headers=rqheader)
+
+        self.debugprint("Request Headers:\n%s" %
+                        userresponse.request.headers)
+        self.debugprint("Response Headers:\n%s" % userresponse.headers)
+        self.debugprint(userresponse)
+        self.debugprint("Response Content:\n%s" % userresponse.content)
+
+        if userresponse.status_code == 200:
+            return userresponse
+        elif userresponse.status_code == 400:
+            print("Bad Request - %s" % userreponse)
+        elif userresponse.status_code == 403:
+            print("Forbidden - %s" % userresponse)
+        elif userresponse.status_code == 500:
+            print("Internal Server Error - %s" % userresponse)
+        elif userresponse.status_code == 503:
+            print("Service Unavailable - %s" % userresponse)
+        return userresponse
 
     def userdetails(self):
         """
