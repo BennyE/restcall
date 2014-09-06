@@ -297,7 +297,7 @@ class Client(object):
         """
 
         rqheader = {"Content-Type": "application/json"}
-        devresponse = self.rest.post(self.ot_url + devurl,
+        devresponse = self.rest.get(self.ot_url + devurl,
                                      headers=rqheader)
 
         self.debugprint("Request Headers:\n%s" %
