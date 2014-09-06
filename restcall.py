@@ -96,8 +96,9 @@ class Client(object):
         if authresponse.status_code == 200:
             print("Authentication successfull!")
             print("Attempting to register session!")
+            self.authentication = authresponse.json()
             authpostresponse = self.rest.post(
-                authresponse.json()["publicUrl"],
+                self.authentication["publicUrl"],
                 headers=rqheader,
                 data=json.dumps(payload)
                 )
@@ -132,7 +133,84 @@ class Client(object):
         elif authresponse.status_code == 401:
             print("ERROR: Username or password incorrect/missing!")
             self.login_successfull = False
+        # NOTES
+        # This goes beyond API documentation, seen when OT was unavailable
+        elif authresponse.status_code == 502:
+            print("Bad Gateway - %s" % authresponse)
+            self.login_successfull = False
         return authresponse
+
+    def keepalive(self):
+        """
+        This function performs a session keepalive with the OpenTouch
+        RESTful service.
+        """
+
+        rqheader = {"Content-Type": "application/json"}
+        payload = {"ApplicationName": self.sn}
+
+        karesponse = self.rest.post(
+            self.authentication["publicUrl"] + "/keepalive",
+            headers=rqheader,
+            data=json.dumps(payload)
+            )
+        self.debugprint("Request POST Headers:\n%s" %
+                        karesponse.request.headers)
+        self.debugprint("Response POST Headers:\n%s" %
+                        karesponse.headers)
+        self.debugprint(karesponse)
+        self.debugprint("Response POST Content:\n%s" %
+                        karesponse.content)
+        if karesponse.status_code == 204:
+            print("Session successfully refreshed: OK - %s" % karesponse)
+        elif karesponse.status_code == 400:
+            print("Bad Request - %s" % karesponse)
+        elif karesponse.status_code == 403:
+            print("Forbidden - %s" % karesponse)
+            print("(The session doesn't exist!)")
+        elif karesponse.status_code == 500:
+            print("Internal Server Error - %s" % karesponse)
+        elif karesponse.status_code == 503:
+            print("Service Unavailable - %s" % karesponse)
+        return karesponse
+
+    def logout(self):
+        """
+        This function performs a logout from the OpenTouch
+        RESTful service.
+        """
+
+        print("Attempting to logout ...")
+
+        rqheader = {"Content-Type": "application/json"}
+        payload = {"ApplicationName": self.sn}
+
+        delresponse = self.rest.delete(
+            self.authentication["publicUrl"],
+            headers=rqheader,
+            data=json.dumps(payload)
+            )
+        self.debugprint("Request POST Headers:\n%s" %
+                        delresponse.request.headers)
+        self.debugprint("Response POST Headers:\n%s" %
+                        delresponse.headers)
+        self.debugprint(delresponse)
+        self.debugprint("Response POST Content:\n%s" %
+                        delresponse.content)
+        if delresponse.status_code == 204:
+            print("Session successfully closed: OK - %s" %
+                  delresponse)
+        elif delresponse.status_code == 400:
+            print("Bad Request - %s" % delresponse)
+        elif delresponse.status_code == 403:
+            print("Forbidden - %s" % delresponse)
+            print("(The session was already closed!)")
+        elif delresponse.status_code == 500:
+            print("Internal Server Error - %s" % delresponse)
+            print("(The session doesn't exist!)")
+        elif delresponse.status_code == 503:
+            print("Service Unavailable - %s" % delresponse)
+        return delresponse
 
     def debugprint(self, content):
         """
@@ -184,6 +262,9 @@ class Client(object):
         # - I assume the same response codes as for "user details" apply
         # - We can read the language preference from here (guiLanguage)
         # - guiLanguage will hold: de, en, fr (and so on)
+        # - Would likely also hold the following attributes
+        #   - personalMobile
+        #   - personalPhone
 
         rqheader = {"Content-Type": "application/json"}
         userurl = "/api/rest/1.0/users/" + self.username + "/preferences"
