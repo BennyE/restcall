@@ -100,7 +100,7 @@ class Client(object):
         payload = {"ApplicationName": self.sn}
 
         if authresponse.status_code == 200:
-            print("Authentication successfull!")
+            print("Authentication successful!")
             print("Attempting to register session!")
             self.authentication = authresponse.json()
 
@@ -121,32 +121,32 @@ class Client(object):
             if authpostresponse.status_code == 200:
                 print("Session successfully registered: OK - %s" %
                       authpostresponse)
-                self.login_successfull = True
+                self.login_successful = True
                 self.session = authpostresponse.json()
                 print("Session information:\n%s" %
                       json.dumps(self.session, indent=4))
             elif authpostresponse.status_code == 400:
                 print("Bad Request - %s" % authpostresponse)
-                self.login_successfull = False
+                self.login_successful = False
             elif authpostresponse.status_code == 403:
                 print("Forbidden - %s" % authpostresponse)
-                self.login_successfull = False
+                self.login_successful = False
             elif authpostresponse.status_code == 500:
                 print("Internal Server Error - %s" % authpostresponse)
-                self.login_successfull = False
+                self.login_successful = False
             elif authpostresponse.status_code == 503:
                 print("Service Unavailable - %s" % authpostresponse)
-                self.login_successfull = False
+                self.login_successful = False
             return authpostresponse
 
         elif authresponse.status_code == 401:
             print("ERROR: Username or password incorrect/missing!")
-            self.login_successfull = False
+            self.login_successful = False
         # NOTES
         # This goes beyond API documentation, seen when OT was unavailable
         elif authresponse.status_code == 502:
             print("Bad Gateway - %s" % authresponse)
-            self.login_successfull = False
+            self.login_successful = False
         return authresponse
 
     def keepalive(self):
@@ -224,14 +224,6 @@ class Client(object):
         elif delresponse.status_code == 503:
             print("Service Unavailable - %s" % delresponse)
         return delresponse
-
-    def debugprint(self, content):
-        """
-        Takes content as an argument and prints it if
-        debugging is enabled.
-        """
-        if self.dbg:
-            print(content)
 
     def getlogins(self):
         """
@@ -432,11 +424,12 @@ Benjamin Eggerstedt
 Christian Sailer\n""" % sn)
 
     # Load the login credentials from external file that is in .gitignore
-    # Never commit your login credentials to a public respository
+    # Never commit your login credentials to a public repository
     try:
         with open("login.json", "r") as json_data:
             login = json.load(json_data)
-            ot_url = login["server"]
+            ot_external = login["ot_external"]
+            ot_internal = login["ot_internal"]
             username = login["username"]
             password = login["password"]
     except IOError:
@@ -445,12 +438,12 @@ Christian Sailer\n""" % sn)
     except TypeError:
         sys.exit("ERROR: Couldn't read json format!")
 
-    if ot_url == "https://yourserver":
+    if ot_external == "https://your-public-server-FQDN":
         sys.exit("This won't work with default template values!")
 
-    client = Client(ot_url, username, password, sn, False)
+    client = Client(ot_external, ot_internal, username, password, sn, False)
     client.login()
 
-    if client.login_successfull is True:
+    if client.login_successful is True:
         devices = client.userdetails()
         preferences = client.userpreferences()
