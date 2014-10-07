@@ -1,11 +1,34 @@
 #!/usr/bin/python
 
+# The MIT License (MIT)
+#
+# Copyright (c) 2014 Benjamin Eggerstedt
+# Copyright (c) 2014 Christian Sailer
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
-#
-# Some license stuff
-# benjamin eggerstedt
-# christian sailer (alphabetical order - sorry ;)
+# Description:
+# RESTcall is the back-end library used to interact with the
+# RESTful API web service of the Alcatel-Lucent Enterprise
+# OpenTouch.
 
 # Imports
 import json
@@ -15,42 +38,33 @@ try:
 except ImportError:
     sys.exit("Dependency missing: python-requests")
 
-# TODO & NOTES:
-# - Deutsch?
-# - SSL Zertifikat ist doch "nie" ungueltig beim Kunden oder?
-# - Error Handler
-# - Version Handler (RESTful v1.0, v1.1, v1.x)
-# - Proxy Handler
-# - Mehr Try & Except zur Fehlerbehandlung
-# - Auslesen welche Faehigkeiten ein User hat (BASIC, ADVANCED)
-#   - Anzeige in GUI o.ae. nach Faehigkeiten
-# - Pruefen inwieweit ein Administrator eine CTI-Applikation nutzt
-#   - Einige Funktionen benoetigen "loginName", im Fall eines Administrator
-#     Accounts muss dieser zwingend gesetzt werden!
 
 class Client(object):
     """
     Client is a RESTful API client class that leverages python-requests
     and interacts with the Alcatel-Lucent Enterprise
-    OpenTouch RESTful service
-
-    The class requires the following parameters to be set:
-        - ot_url     = BaseURL of OpenTouch server
-        - username   = Valid username for OpenTouch service
-        - password   = Valid password for OpenTouch service
-        - sn         = Software name / version
-    Optional:
-        - verify_ssl = Override with False if OpenTouch service
-                       doesn't have a valid SSL certificate
-        - dbg        = Debug flag
+    OpenTouch RESTful API web service
     """
 
-    def __init__(self, ot_url, username, password, sn,
+    def __init__(self, ot_external, ot_internal, username, password, sn,
                  verify_ssl=True, dbg=False):
         """
         Constructor of class "Client"
+
+        The class requires the following parameters to be set:
+        - ot_external = Public BaseURL of OpenTouch server (the external interface)
+        - ot_internal = Private BaseURL of OpenTouch server (the internal interface)
+        - username    = Valid username for OpenTouch service
+        - password    = Valid password for OpenTouch service
+        - sn          = Software name / version
+         Optional:
+        - verify_ssl  = Override with False if OpenTouch service
+                        doesn't have a valid SSL certificate
+        - dbg         = Debug flag
+
         """
-        self.ot_url = ot_url
+        self.ot_external = ot_external
+        self.ot_internal = ot_internal
         self.rest = requests.Session()
         self.rest.verify = verify_ssl
         # Set our own User-Agent
@@ -99,11 +113,21 @@ class Client(object):
             print("Authentication successfull!")
             print("Attempting to register session!")
             self.authentication = authresponse.json()
-            authpostresponse = self.rest.post(
-                self.authentication["publicUrl"],
-                headers=rqheader,
-                data=json.dumps(payload)
+
+            try:
+                authpostresponse = self.rest.post(
+                    self.authentication["publicUrl"],
+                    headers=rqheader,
+                    data=json.dumps(payload)
                 )
+            except requests.exceptions.ConnectionError:
+                print("publicUrl failed, trying internal!")
+                authpostresponse = self.rest.post(
+                    self.authentication["internalUrl"],
+                    headers=rqheader,
+                    data=json.dumps(payload)
+                )
+
             self.debugprint("Request POST Headers:\n%s" %
                             authpostresponse.request.headers)
             self.debugprint("Response POST Headers:\n%s" %
@@ -151,11 +175,20 @@ class Client(object):
         rqheader = {"Content-Type": "application/json"}
         payload = {"ApplicationName": self.sn}
 
-        karesponse = self.rest.post(
-            self.authentication["publicUrl"] + "/keepalive",
-            headers=rqheader,
-            data=json.dumps(payload)
+        try:
+            karesponse = self.rest.post(
+                self.authentication["publicUrl"] + "/keepalive",
+                headers=rqheader,
+                data=json.dumps(payload)
             )
+        except requests.exceptions.ConnectionError:
+            print("publicUrl failed, trying internal!")
+            karesponse = self.rest.post(
+                self.authentication["internalUrl"] + "/keepalive",
+                headers=rqheader,
+                data=json.dumps(payload)
+            )
+
         self.debugprint("Request POST Headers:\n%s" %
                         karesponse.request.headers)
         self.debugprint("Response POST Headers:\n%s" %
@@ -187,11 +220,20 @@ class Client(object):
         rqheader = {"Content-Type": "application/json"}
         payload = {"ApplicationName": self.sn}
 
-        delresponse = self.rest.delete(
-            self.authentication["publicUrl"],
-            headers=rqheader,
-            data=json.dumps(payload)
+        try:
+            delresponse = self.rest.delete(
+                self.authentication["publicUrl"],
+                headers=rqheader,
+                data=json.dumps(payload)
             )
+        except requests.exceptions.ConnectionError:
+            print("publicUrl failed, trying internal!")
+            delresponse = self.rest.delete(
+                self.authentication["internalUrl"],
+                headers=rqheader,
+                data=json.dumps(payload)
+            )
+
         self.debugprint("Request POST Headers:\n%s" %
                         delresponse.request.headers)
         self.debugprint("Response POST Headers:\n%s" %
