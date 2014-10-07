@@ -47,7 +47,7 @@ class Client(object):
     """
 
     def __init__(self, ot_external, ot_internal, username, password, sn,
-                 verify_ssl=True, dbg=False):
+                 verify_ssl=True):
         """
         Constructor of class "Client"
 
@@ -57,12 +57,12 @@ class Client(object):
         - username    = Valid username for OpenTouch service
         - password    = Valid password for OpenTouch service
         - sn          = Software name / version
+
          Optional:
         - verify_ssl  = Override with False if OpenTouch service
                         doesn't have a valid SSL certificate
-        - dbg         = Debug flag
-
         """
+
         self.ot_external = ot_external
         self.ot_internal = ot_internal
         self.rest = requests.Session()
@@ -74,15 +74,6 @@ class Client(object):
         self.sn = sn
         # Set our username/password for authentication
         self.rest.auth = (self.username, self.password)
-        self.dbg = dbg
-        self.debugprint("""Debug:
-    Server:\t%s
-    Username:\t%s
-    Password:\t%s
-    Verify_SSL:\t%s
-    Debug:\t%s\n """ % (self.ot_url, self.username,
-                        self.password, self.rest.verify,
-                        self.dbg))
 
     def login(self):
         """
@@ -100,13 +91,12 @@ class Client(object):
 
         authurl = "/api/rest/authenticate?version=1.0"
         authresponse = self.rest.get(self.ot_url + authurl)
-        self.debugprint("Request Headers:\n%s" %
-                        authresponse.request.headers)
-        self.debugprint("Response Headers:\n%s" % authresponse.headers)
-        self.debugprint(authresponse)
-        self.debugprint("Response Content:\n%s" % authresponse.content)
 
-        rqheader = {"Content-Type": "application/json"}
+        #rqheader = {"Content-Type": "application/json"}
+
+        # Set our Content-Type
+        self.rest.headers["Content-Type"] = "application/json"
+
         payload = {"ApplicationName": self.sn}
 
         if authresponse.status_code == 200:
@@ -128,13 +118,6 @@ class Client(object):
                     data=json.dumps(payload)
                 )
 
-            self.debugprint("Request POST Headers:\n%s" %
-                            authpostresponse.request.headers)
-            self.debugprint("Response POST Headers:\n%s" %
-                            authpostresponse.headers)
-            self.debugprint(authpostresponse)
-            self.debugprint("Response POST Content:\n%s" %
-                            authpostresponse.content)
             if authpostresponse.status_code == 200:
                 print("Session successfully registered: OK - %s" %
                       authpostresponse)
@@ -189,13 +172,6 @@ class Client(object):
                 data=json.dumps(payload)
             )
 
-        self.debugprint("Request POST Headers:\n%s" %
-                        karesponse.request.headers)
-        self.debugprint("Response POST Headers:\n%s" %
-                        karesponse.headers)
-        self.debugprint(karesponse)
-        self.debugprint("Response POST Content:\n%s" %
-                        karesponse.content)
         if karesponse.status_code == 204:
             print("Session successfully refreshed: OK - %s" % karesponse)
         elif karesponse.status_code == 400:
@@ -234,13 +210,6 @@ class Client(object):
                 data=json.dumps(payload)
             )
 
-        self.debugprint("Request POST Headers:\n%s" %
-                        delresponse.request.headers)
-        self.debugprint("Response POST Headers:\n%s" %
-                        delresponse.headers)
-        self.debugprint(delresponse)
-        self.debugprint("Response POST Content:\n%s" %
-                        delresponse.content)
         if delresponse.status_code == 204:
             print("Session successfully closed: OK - %s" %
                   delresponse)
@@ -274,12 +243,6 @@ class Client(object):
         userresponse = self.rest.get(self.ot_url + userurl,
                                      headers=rqheader)
 
-        self.debugprint("Request Headers:\n%s" %
-                        userresponse.request.headers)
-        self.debugprint("Response Headers:\n%s" % userresponse.headers)
-        self.debugprint(userresponse)
-        self.debugprint("Response Content:\n%s" % userresponse.content)
-
         if userresponse.status_code == 200:
             return userresponse
         elif userresponse.status_code == 400:
@@ -301,12 +264,6 @@ class Client(object):
         userurl = "/api/rest/1.0/users/" + self.username
         userresponse = self.rest.get(self.ot_url + userurl,
                                      headers=rqheader)
-
-        self.debugprint("Request Headers:\n%s" %
-                        userresponse.request.headers)
-        self.debugprint("Response Headers:\n%s" % userresponse.headers)
-        self.debugprint(userresponse)
-        self.debugprint("Response Content:\n%s" % userresponse.content)
 
         if userresponse.status_code == 200:
             print("Get user details - %s" % userresponse)
@@ -342,12 +299,6 @@ class Client(object):
         userurl = "/api/rest/1.0/users/" + self.username + "/preferences"
         userresponse = self.rest.get(self.ot_url + userurl,
                                      headers=rqheader)
-
-        self.debugprint("Request Headers:\n%s" %
-                        userresponse.request.headers)
-        self.debugprint("Response Headers:\n%s" % userresponse.headers)
-        self.debugprint(userresponse)
-        self.debugprint("Response Content:\n%s" % userresponse.content)
 
         if userresponse.status_code == 200:
             print("Get user preferences - %s" % userresponse)
@@ -388,12 +339,6 @@ class Client(object):
                                     headers=rqheader,
                                     data=json.dumps(call))
 
-        self.debugprint("Request Headers:\n%s" %
-                        bcresponse.request.headers)
-        self.debugprint("Response Headers:\n%s" % bcresponse.headers)
-        self.debugprint(bcresponse)
-        self.debugprint("Response Content:\n%s" % bcresponse.content)
-
         if bcresponse.status_code == 201:
             print("Call successfully made - %s" % bcresponse)
         elif bcresponse.status_code == 400:
@@ -428,12 +373,6 @@ class Client(object):
                                     headers=rqheader,
                                     data=json.dumps({"deviceId": device}))
 
-        self.debugprint("Request Headers:\n%s" %
-                        bcresponse.request.headers)
-        self.debugprint("Response Headers:\n%s" % bcresponse.headers)
-        self.debugprint(bcresponse)
-        self.debugprint("Response Content:\n%s" % bcresponse.content)
-
         if bcresponse.status_code == 204:
             print("Call successfully answered - %s" % bcresponse)
         elif bcresponse.status_code == 400:
@@ -464,11 +403,6 @@ class Client(object):
         bcurl = "/api/rest/1.0/telephony/basicCall/dropme"
         bcresponse = self.rest.post(self.ot_url + bcurl, headers=rqheader)
 
-        self.debugprint("Request Headers:\n%s" % bcresponse.request.headers)
-        self.debugprint("Response Headers:\n%s" % bcresponse.headers)
-        self.debugprint(bcresponse)
-        self.debugprint("Response Content:\n%s" % bcresponse.content)
-
         if bcresponse.status_code == 204:
             print("Call ended - %s" % bcresponse)
         elif bcresponse.status_code == 400:
@@ -481,65 +415,13 @@ class Client(object):
             print("Service Unavailable - %s" % bcresponse)
         return bcresponse
 
-    def devget(self, devurl):
-        """
-        This function sends a GET request.
-            - Requires request URL (server/host is set)
-
-        Example for devurl:
-        devurl = /api/rest/1.0/users/{login.name}/preferences
-
-        Meant for development.
-        """
-
-        # TODO
-        # Potentially remove function after development phase
-
-        rqheader = {"Content-Type": "application/json"}
-        devresponse = self.rest.get(self.ot_url + devurl,
-                                    headers=rqheader)
-
-        self.debugprint("Request Headers:\n%s" %
-                        devresponse.request.headers)
-        self.debugprint("Response Headers:\n%s" % devresponse.headers)
-        self.debugprint(devresponse)
-        self.debugprint("Response Content:\n%s" % devresponse.content)
-        return devresponse
-
-    def devpost(self, devurl, payload):
-        """
-        This function sends a POST request with payload.
-            - Requires request URL (server/host is set)
-            - Requires payload as dict
-
-        Example for devurl:
-        devurl = "/api/rest/1.0/telephony/basicCall/answer"
-
-        Meant for development.
-        """
-
-        # TODO
-        # Potentially remove function after development phase
-
-        rqheader = {"Content-Type": "application/json"}
-        devresponse = self.rest.post(self.ot_url + devurl,
-                                     headers=rqheader,
-                                     data=json.dumps(payload))
-
-        self.debugprint("Request Headers:\n%s" %
-                        devresponse.request.headers)
-        self.debugprint("Response Headers:\n%s" % devresponse.headers)
-        self.debugprint(devresponse)
-        self.debugprint("Response Content:\n%s" % devresponse.content)
-        return devresponse
-
 
 if __name__ == "__main__":
     """
     This is called if running as a script and not being imported by
     another script!
     """
-    sn = "RESTcall v0.3"
+    sn = "RESTcall v0.6"
 
     print("""
 %s
@@ -566,17 +448,9 @@ Christian Sailer\n""" % sn)
     if ot_url == "https://yourserver":
         sys.exit("This won't work with default template values!")
 
-    # Use the class, set variables
-    #                                               vSSL, Debug
-    client = Client(ot_url, username, password, sn, False, False)
+    client = Client(ot_url, username, password, sn, False)
     client.login()
 
     if client.login_successfull is True:
         devices = client.userdetails()
         preferences = client.userpreferences()
-
-    # TODO:
-    #   - Need to write logout() function
-    #   - Need a way to keep our session active
-    #       - POST api/session/keepalive (TBD)
-    # client.logout()
