@@ -1,1 +1,1 @@
-{"server": "https://yourserver", username": "your-username", "password": "password"}
+{"ot_external": "https://your-public-server-FQDN", "ot_internal": "https://your-internal-server-FQDN", "username": "your-username", "password": "your-password"}
