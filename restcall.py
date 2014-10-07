@@ -439,11 +439,11 @@ Christian Sailer\n""" % sn)
         sys.exit("ERROR: Couldn't read json format!")
 
     if ot_external == "https://your-public-server-FQDN":
-        sys.exit("This won't work with default template values!")
+        sys.exit("ERROR: This won't work with default template values!")
 
     client = Client(ot_external, ot_internal, username, password, sn, False)
     client.login()
 
-    if client.login_successful is True:
+    if client.login_successful:
         devices = client.userdetails()
         preferences = client.userpreferences()
