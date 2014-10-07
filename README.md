@@ -5,6 +5,9 @@ RESTcall is a lightweight client backend/library to interact with the Alcatel-Lu
 
 **This is under development, expect changes ;)**
 
+__Note for October:__
+I'm currently changing some heavy things under the hood. Use the September 0.3 version if you need a working version. This text will be updated once all changes are done.
+
 __Example:__
 
 The user has the ability for "BASIC_TELEPHONY".
